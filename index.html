@@ -1,0 +1,97 @@
+<html>
+<header>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+</header>
+<body>
+<canvas id="myChart" style="width:100%;max-width:700px"></canvas>
+
+<script>
+
+  const datasetFormatter = (data, color)=>({
+    fill: false,
+    lineTension: 0,
+    pointRadius: 4,
+    pointBackgroundColor: color,
+    data,
+    showLine: true
+  })
+  const xyValues = [
+    { x:1 ,y:4 },
+    { x:2 ,y:12 },
+    { x:3 ,y:28 },
+    { x:4 ,y:52 },
+    { x:5 ,y:80 }
+  ];
+  let chartDatasets = [datasetFormatter(xyValues, 'blue')];
+
+  const xmin = Math.min(...xyValues.map(d=>d.x));
+  const xmax = Math.max(...xyValues.map(d=>d.x));
+  const ymin = Math.min(...xyValues.map(d=>d.y));
+  const ymax = Math.max(...xyValues.map(d=>d.y));
+  function generateChart(){
+    new Chart("myChart", {
+      type: "scatter",
+      data: {
+        datasets: chartDatasets
+      },
+      options: {
+        legend: {display: false},
+        scales: {
+          xAxes: [{ticks: {min: xmin, max: xmax+5}}],
+          yAxes: [{ticks: {min: ymin, max: ymax+50}}],
+        }
+      }
+    });
+  }
+  generateChart();
+
+  function getY(m,c,x){
+    return (m*x)+c;
+  }
+
+  function getSlopeConstant(point1, point2){
+    const m = Math.abs(point2.y-point1.y)/Math.abs(point2.x-point1.x);
+    const c = point1.y - m*point1.x;
+    return {m,c};
+  }
+  const slopeIntercept = getSlopeConstant(xyValues[0],xyValues[xyValues.length-1]);
+  const newCoordinates = [];
+  xyValues.forEach(coordinates=>{
+    newCoordinates.push({
+      x: coordinates.x,
+      y: getY(slopeIntercept.m, slopeIntercept.c, coordinates.x)
+    })
+  })
+  chartDatasets = [...chartDatasets, datasetFormatter(newCoordinates, 'red')];
+  generateChart();
+
+  // Least square method
+  const xMean = xyValues.map(d=>d.x).reduce((a,b)=>a+b)/xyValues.length
+  const yMean = xyValues.map(d=>d.y).reduce((a,b)=>a+b)/xyValues.length
+
+  let mSlopeNumerator = 0;
+  xyValues.forEach((coordinates) => {
+    mSlopeNumerator += (coordinates.x-xMean)*(coordinates.y-yMean);
+  });
+
+  let mSlopeDenominator = 0;
+  xyValues.forEach((coordinates) => {
+    mSlopeDenominator += Math.pow((coordinates.x-xMean),2);
+  });
+  const leastSquareSlope = mSlopeNumerator/mSlopeDenominator;
+  let leastSquareIntercept = yMean - (leastSquareSlope*xMean);
+  leastSquareIntercept = Number(leastSquareIntercept.toFixed(2))
+
+  const newCoordinatesLeastSquare = [];
+  xyValues.forEach(coordinates=>{
+    newCoordinatesLeastSquare.push({
+      x: coordinates.x,
+      y: getY(leastSquareSlope, leastSquareIntercept, coordinates.x)
+    })
+  })
+  chartDatasets = [...chartDatasets, datasetFormatter(newCoordinatesLeastSquare, 'yellow')];
+  generateChart();
+</script>
+
+</body>
+</html>
